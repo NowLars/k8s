@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+  labels:
+    app: mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+      - name: mongo-express
+        image: mongo-express
+        ports:
+        - containerPort: 8081
+        env:
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+          valueFrom: 
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-password
+        - name: ME_CONFIG_MONGODB_SERVER
+          valueFrom: 
+            configMapKeyRef:                          #Gibt eine Verbindung zu einer ConfigMap an, in welcher die Daten zentralisiert vorliegen
+              name: mongodb-configmap
+              key: database_url
+---
+apiVersion: v1
+kind: Service                                         #Erstellt einen weiteren Service wie in mongo.yaml
+metadata:
+  name: mongo-express-service
+spec:
+  selector:
+    app: mongo-express
+  type: LoadBalancer                                 #Jedoch wird dieser Service als Type Loadbalancer bzw. eigentlich ExternelServie festgelegt
+  ports:                                             #Somit bekommt er einen externe IP-Adresse, um ihn von außen anzusprechen
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+      nodePort: 30000                                #Gibt den Port an, über welchen auf den Service zugegriffen werden kann (muss zwischen 30000-32767 sein)
+                                                     #minikube service mongo-express-servic um dem Service eine exteren IP-Adresse zuzuweisen

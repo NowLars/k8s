@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment                             #Art der Datei
+metadata:
+  name: mongodb-deployment                   #Name des Deployments / Der entstehenden Pods
+  labels:
+    app: mongodb                             #Hierrüber lässt sich später der Pod ansprechen
+spec:                                        #Spezifikationen für das Deployment
+  replicas: 1                                #Gibt die Anzahl der zu erstellenden Pods an
+  selector:
+    matchLabels:
+      app: mongodb
+  template:                                  #Blueprint, wie ein Pod erstellt werden soll
+    metadata:
+      labels:
+        app: mongodb
+    spec:                                    #Spezifikationen für den Pod
+      containers:
+      - name: mongodb                        #Name des Pods
+        image: mongo                         #Welches Image verwendet werden soll
+        ports:
+        - containerPort: 27017               # An welchen Port der Pod gebunden werden soll
+        env:                                 # Legt zusätzliche Variablen für einen Container fest
+        - name: MONGO_INITDB_ROOT_USERNAME   # Wird von MongoDB zum Starten benötigt
+          valueFrom:                      
+            secretKeyRef: 
+              name: mongodb-secret           # Bekommt den Benutzername aus der Datei mangodb-secret
+              key: mongo-root-username       # Und nimnmt dort den Wert für mongo-root-username
+        - name: MONGO_INITDB_ROOT_PASSWORD   # Und das gleiche Spiel für das Passwort
+          valueFrom: 
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-password
+---
+apiVersion: v1
+kind: Service                                #Erstellt einen Servie über den die Kommunikation stattfindet
+metadata:
+  name: mongodb-service
+spec:
+  selector:                                   
+    app: mongodb                             #Verbindet dem Service mit den Pods mit label "mongodb" --> Siehe oben gesetzt
+  ports:
+    - protocol: TCP
+      port: 27017                             #Service Port
+      targetPort: 27017                       #ContainerPort, muss mit dem des Deployments übereinstimmen
